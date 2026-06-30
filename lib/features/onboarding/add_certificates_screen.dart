@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cloudinary_public/cloudinary_public.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:gapfix/core/file_opener.dart';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import '../../core/auth_provider.dart';
@@ -169,9 +168,9 @@ class _AddCertificatesScreenState extends ConsumerState<AddCertificatesScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(32),
                 decoration: BoxDecoration(
-                  border: Border.all(color: AppTheme.primary.withOpacity(0.3), width: 2, style: BorderStyle.solid),
+                  border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3), width: 2, style: BorderStyle.solid),
                   borderRadius: BorderRadius.circular(16),
-                  color: AppTheme.primary.withOpacity(0.05),
+                  color: AppTheme.primary.withValues(alpha: 0.05),
                 ),
                 child: Column(
                   children: [
@@ -192,7 +191,7 @@ class _AddCertificatesScreenState extends ConsumerState<AddCertificatesScreen> {
               ElevatedButton(
                 onPressed: _isUploading ? null : _uploadCertificate,
                 child: _isUploading 
-                  ? const CircularProgressIndicator(color: Colors.white) 
+                  ? const CircularProgressIndicator.adaptive(backgroundColor: Colors.white) 
                   : const Text('UPLOAD CERTIFICATE'),
               ),
             ],
@@ -203,7 +202,7 @@ class _AddCertificatesScreenState extends ConsumerState<AddCertificatesScreen> {
 
             Expanded(
               child: _isLoadingCerts 
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: CircularProgressIndicator.adaptive())
                 : _uploadedCertificates.isEmpty 
                   ? const Center(child: Text('No certificates uploaded yet.'))
                   : ListView.builder(
@@ -219,7 +218,7 @@ class _AddCertificatesScreenState extends ConsumerState<AddCertificatesScreen> {
                             subtitle: Text(DateFormat('MMM dd, yyyy').format(DateTime.fromMillisecondsSinceEpoch(cert['timestamp']))),
                             trailing: IconButton(
                               icon: const Icon(Icons.open_in_new),
-                              onPressed: () => launchUrl(Uri.parse(cert['url'])),
+                              onPressed: () => FileOpener.openFile(context, cert['url']),
                             ),
                           ),
                         );

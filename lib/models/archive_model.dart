@@ -21,9 +21,9 @@ class ArchiveModel {
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
+      'documentId': id,
       'title': title,
-      'userId': userId,
+      'studentId': userId,
       'subject': subject,
       'fileUrl': fileUrl,
       'fileName': fileName,
@@ -34,9 +34,9 @@ class ArchiveModel {
 
   factory ArchiveModel.fromMap(String id, Map<dynamic, dynamic> map) {
     return ArchiveModel(
-      id: id,
-      title: map['title'] ?? '',
-      userId: map['userId'] ?? '',
+      id: map['documentId'] ?? id,
+      title: map['title'] ?? map['fileName'] ?? id,
+      userId: map['userId'] ?? map['studentId'] ?? '',
       subject: map['subject'] ?? '',
       fileUrl: map['fileUrl'] ?? '',
       fileName: map['fileName'] ?? '',

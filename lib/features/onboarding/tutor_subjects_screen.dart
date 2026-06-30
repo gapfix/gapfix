@@ -44,8 +44,11 @@ class _TutorSubjectsScreenState extends ConsumerState<TutorSubjectsScreen> {
       } else if (data is Map) {
          setState(() {
           data.forEach((key, value) {
-            if (value is String) _allSubjects.add(value);
-            else if (value is Map) _allSubjects.add(value['en'] ?? key);
+            if (value is String) {
+              _allSubjects.add(value);
+            } else if (value is Map) {
+              _allSubjects.add(value['en'] ?? key);
+            }
           });
           _allSubjects.sort();
           _isLoading = false;
@@ -109,7 +112,7 @@ class _TutorSubjectsScreenState extends ConsumerState<TutorSubjectsScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Tutor Profile Setup')),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator.adaptive())
           : SingleChildScrollView(
               padding: const EdgeInsets.only(bottom: 100),
               child: Column(
@@ -125,7 +128,7 @@ class _TutorSubjectsScreenState extends ConsumerState<TutorSubjectsScreen> {
                           const Text('Set Your Rates', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 16),
                           DropdownButtonFormField<String>(
-                            value: _selectedSubject,
+                            initialValue: _selectedSubject,
                             hint: const Text('Select Subject'),
                             items: _allSubjects.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                             onChanged: (v) => setState(() => _selectedSubject = v),
@@ -146,7 +149,7 @@ class _TutorSubjectsScreenState extends ConsumerState<TutorSubjectsScreen> {
                               Expanded(
                                 flex: 1,
                                 child: DropdownButtonFormField<String>(
-                                  value: _currency,
+                                  initialValue: _currency,
                                   items: ['USD', 'AMD', 'EUR'].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                                   onChanged: (v) => setState(() => _currency = v!),
                                   decoration: const InputDecoration(hintText: 'Curr'),
@@ -188,21 +191,21 @@ class _TutorSubjectsScreenState extends ConsumerState<TutorSubjectsScreen> {
                   ),
                   const SizedBox(height: 24),
                   const Text('How do you want to teach?', style: TextStyle(color: AppTheme.primary, fontSize: 24, fontWeight: FontWeight.bold)),
-                  RadioListTile<String>(
+                  RadioListTile<String>.adaptive(
                     title: const Text('Online'),
                     value: 'Online',
                     groupValue: _teachMode,
                     activeColor: AppTheme.primary,
                     onChanged: (v) => setState(() => _teachMode = v),
                   ),
-                  RadioListTile<String>(
+                  RadioListTile<String>.adaptive(
                     title: const Text('In-Person (Offline)'),
                     value: 'Offline',
                     groupValue: _teachMode,
                     activeColor: AppTheme.primary,
                     onChanged: (v) => setState(() => _teachMode = v),
                   ),
-                  RadioListTile<String>(
+                  RadioListTile<String>.adaptive(
                     title: const Text('Both'),
                     value: 'Both',
                     groupValue: _teachMode,

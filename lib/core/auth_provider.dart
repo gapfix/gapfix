@@ -31,14 +31,19 @@ final userProfileProvider = FutureProvider<UserModel?>((ref) async {
   return null;
 });
 
-class AuthNotifier extends StateNotifier<AsyncValue<void>> {
-  final FirebaseAuth _auth;
-  final FirebaseDatabase _db;
+class AuthNotifier extends Notifier<AsyncValue<void>> {
+  late FirebaseAuth _auth;
+  late FirebaseDatabase _db;
   
   // Cloudinary config from your Java app
   final _cloudinary = CloudinaryPublic('dbugqpl3m', 'ml_default', cache: false);
 
-  AuthNotifier(this._auth, this._db) : super(const AsyncValue.data(null));
+  @override
+  AsyncValue<void> build() {
+    _auth = ref.watch(firebaseAuthProvider);
+    _db = ref.watch(databaseProvider);
+    return const AsyncValue.data(null);
+  }
 
   Future<void> signUp({
     required String email,
@@ -127,9 +132,4 @@ class AuthNotifier extends StateNotifier<AsyncValue<void>> {
   }
 }
 
-final authNotifierProvider = StateNotifierProvider<AuthNotifier, AsyncValue<void>>((ref) {
-  return AuthNotifier(
-    ref.watch(firebaseAuthProvider),
-    ref.watch(databaseProvider),
-  );
-});
+final authNotifierProvider = NotifierProvider<AuthNotifier, AsyncValue<void>>(AuthNotifier.new);

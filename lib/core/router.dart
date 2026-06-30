@@ -9,6 +9,8 @@ import '../features/onboarding/tutor_subjects_screen.dart';
 import '../features/onboarding/add_certificates_screen.dart';
 import '../features/home/main_layout.dart';
 import '../features/home/library_screen.dart';
+import '../features/home/pdf_viewer_screen.dart';
+import '../features/calendar/sessions_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
@@ -61,9 +63,24 @@ final appRouter = GoRouter(
       name: 'library',
       builder: (context, state) => const LibraryScreen(),
     ),
+    GoRoute(
+      path: '/sessions',
+      name: 'sessions',
+      builder: (context, state) {
+        final isStudent = state.extra as bool? ?? true;
+        return SessionsScreen(isStudent: isStudent);
+      },
+    ),
+    GoRoute(
+      path: '/pdf-viewer',
+      name: 'pdf-viewer',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>;
+        return PdfViewerScreen(
+          url: extra['url'] as String,
+          title: extra['title'] as String,
+        );
+      },
+    ),
   ],
 );
-
-
-
-

@@ -63,11 +63,16 @@ final subjectFilesProvider = StreamProvider.family<List<ArchiveModel>, String>((
   });
 });
 
-class LibraryNotifier extends StateNotifier<AsyncValue<void>> {
-  final String _uid;
+class LibraryNotifier extends Notifier<AsyncValue<void>> {
+  late String _uid;
   final _cloudinary = CloudinaryPublic('dbugqpl3m', 'ml_default', cache: false);
 
-  LibraryNotifier(this._uid) : super(const AsyncValue.data(null));
+  @override
+  AsyncValue<void> build() {
+    final user = ref.watch(authStateProvider).value;
+    _uid = user?.uid ?? '';
+    return const AsyncValue.data(null);
+  }
 
   Future<void> uploadLibraryFile({
     required String title,
@@ -139,7 +144,4 @@ class LibraryNotifier extends StateNotifier<AsyncValue<void>> {
   }
 }
 
-final libraryNotifierProvider = StateNotifierProvider<LibraryNotifier, AsyncValue<void>>((ref) {
-  final user = ref.watch(authStateProvider).value;
-  return LibraryNotifier(user?.uid ?? '');
-});
+final libraryNotifierProvider = NotifierProvider<LibraryNotifier, AsyncValue<void>>(LibraryNotifier.new);

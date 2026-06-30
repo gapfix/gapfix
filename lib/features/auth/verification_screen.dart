@@ -94,7 +94,7 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
               ),
               const SizedBox(height: 36),
               if (_isLoading)
-                const CircularProgressIndicator()
+                const CircularProgressIndicator.adaptive()
               else
                 ElevatedButton(
                   onPressed: _checkVerification,

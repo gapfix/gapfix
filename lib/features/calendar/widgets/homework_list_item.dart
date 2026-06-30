@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:gapfix/models/homework_message_model.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:gapfix/core/file_opener.dart';
+
+import 'package:gapfix/core/theme.dart';
 
 class HomeworkListItem extends StatelessWidget {
   final HomeworkMessageModel homework;
@@ -22,11 +24,12 @@ class HomeworkListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDone = homework.homeworkStatus == 'done';
     final isFailed = homework.homeworkStatus == 'failed';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final secondaryTextColor = isDark ? AppTheme.textSecondaryDark : AppTheme.textSecondary;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -38,7 +41,11 @@ class HomeworkListItem extends StatelessWidget {
                 Expanded(
                   child: Text(
                     homework.subject?.isNotEmpty == true ? homework.subject! : 'Homework',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold, 
+                      fontSize: 16,
+                      color: theme.colorScheme.onSurface,
+                    ),
                   ),
                 ),
                 if (isDone)
@@ -48,27 +55,45 @@ class HomeworkListItem extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Text(homework.text ?? 'No description provided.'),
+            Text(
+              homework.text ?? 'No description provided.',
+              style: TextStyle(color: secondaryTextColor, fontSize: 14),
+            ),
             const SizedBox(height: 12),
             if (homework.fileUrl != null)
               OutlinedButton.icon(
-                onPressed: () => _openUrl(homework.fileUrl!),
-                icon: const Icon(Icons.attachment),
-                label: const Text('View Homework File'),
+                onPressed: () => FileOpener.openFile(context, homework.fileUrl!, title: homework.subject),
+                icon: const Icon(Icons.attachment, size: 18),
+                label: const Text('View Homework File', style: TextStyle(fontSize: 13)),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(0, 40),
+                ),
               ),
             if (isDone && homework.solutionUrl != null)
-              OutlinedButton.icon(
-                onPressed: () => _openUrl(homework.solutionUrl!),
-                icon: const Icon(Icons.check_circle_outline),
-                label: const Text('View Solution'),
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: OutlinedButton.icon(
+                  onPressed: () => FileOpener.openFile(context, homework.solutionUrl!, title: 'Homework Solution'),
+                  icon: const Icon(Icons.check_circle_outline, size: 18),
+                  label: const Text('View Solution', style: TextStyle(fontSize: 13)),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 40),
+                    foregroundColor: Colors.green,
+                    side: const BorderSide(color: Colors.green),
+                  ),
+                ),
               ),
             if (isStudent && !isDone && !isFailed) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
                     child: ElevatedButton(
                       onPressed: onUploadSolution,
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(0, 44),
+                        textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
                       child: const Text('Upload Solution'),
                     ),
                   ),
@@ -76,19 +101,23 @@ class HomeworkListItem extends StatelessWidget {
                   Expanded(
                     child: TextButton(
                       onPressed: onCouldNotDoIt,
-                      style: TextButton.styleFrom(foregroundColor: Colors.red),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        minimumSize: const Size(0, 44),
+                      ),
                       child: const Text('Couldn\'t do it'),
                     ),
                   ),
                 ],
               ),
             ],
+            const SizedBox(height: 8),
             if (isStudent) ...[
               Align(
                 alignment: Alignment.centerRight,
-                child: IconButton(
-                  icon: const Icon(Icons.archive),
-                  tooltip: 'Archive Homework',
+                child: TextButton.icon(
+                  icon: Icon(Icons.archive, size: 16, color: secondaryTextColor),
+                  label: Text('Archive', style: TextStyle(color: secondaryTextColor, fontSize: 12)),
                   onPressed: onArchive,
                 ),
               ),
@@ -97,12 +126,5 @@ class HomeworkListItem extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Future<void> _openUrl(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    }
   }
 }

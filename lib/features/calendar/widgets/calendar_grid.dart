@@ -17,10 +17,11 @@ class CalendarGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final days = _generateDays();
+    final theme = Theme.of(context);
 
     return Column(
       children: [
-        _buildDaysOfWeek(),
+        _buildDaysOfWeek(theme),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -33,21 +34,33 @@ class CalendarGrid extends StatelessWidget {
             final day = days[index];
             final isCurrentMonth = day.month == currentMonth.month;
             final isSelected = _isSameDay(day, selectedDate);
-            final isToday = _isSameDay(day, DateTime.now());
             final dateKey = '${day.year}-${day.month}-${day.day}';
             final hasEvents = activeDates.contains(dateKey);
+
+            Color bgColor = Colors.transparent;
+            Color textColor = theme.colorScheme.onSurface;
+            FontWeight fontWeight = FontWeight.normal;
+
+            if (isSelected) {
+              bgColor = const Color(0xFF00C853); // A specific nice green color matching Android
+              textColor = Colors.white;
+              fontWeight = FontWeight.bold;
+            } else {
+              // No background color for just having events
+              bgColor = Colors.transparent;
+            }
+
+            if (!isCurrentMonth) {
+              textColor = textColor.withValues(alpha: 0.3);
+            }
 
             return GestureDetector(
               onTap: () => onDateSelected(day),
               child: Container(
                 margin: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: isSelected
-                      ? Theme.of(context).primaryColor
-                      : isToday
-                          ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
-                          : Colors.transparent,
-                  shape: BoxShape.circle,
+                  color: bgColor,
+                  shape: BoxShape.circle, // Using circle shape instead of rounded rect for the selected indicator
                 ),
                 child: Stack(
                   alignment: Alignment.center,
@@ -55,22 +68,19 @@ class CalendarGrid extends StatelessWidget {
                     Text(
                       '${day.day}',
                       style: TextStyle(
-                        color: isSelected
-                            ? Colors.white
-                            : isCurrentMonth
-                                ? (isToday ? Theme.of(context).primaryColor : Colors.black87)
-                                : Colors.grey,
-                        fontWeight: isSelected || isToday ? FontWeight.bold : FontWeight.normal,
+                        color: textColor,
+                        fontWeight: fontWeight,
+                        fontSize: 14,
                       ),
                     ),
-                    if (hasEvents && !isSelected)
+                    if (hasEvents && !isSelected) // Show dot if it has events and isn't selected
                       Positioned(
-                        bottom: 6,
+                        bottom: 4,
                         child: Container(
                           width: 4,
                           height: 4,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).primaryColor,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF00C853),
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -85,7 +95,7 @@ class CalendarGrid extends StatelessWidget {
     );
   }
 
-  Widget _buildDaysOfWeek() {
+  Widget _buildDaysOfWeek(ThemeData theme) {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -94,7 +104,10 @@ class CalendarGrid extends StatelessWidget {
         children: days
             .map((day) => Text(
                   day,
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                  ),
                 ))
             .toList(),
       ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 import 'firebase_options.dart';
 import 'core/router.dart';
 import 'core/theme.dart';
@@ -14,6 +15,12 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Lock orientation to portrait on mobile
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
 
   runApp(const ProviderScope(child: GapFixApp()));
 }
@@ -32,25 +39,23 @@ class GapFixApp extends ConsumerWidget {
     );
 
     // Listen to auth state to handle global navigation if needed
-    // but go_router can also handle this.
     final authState = ref.watch(authStateProvider);
 
-    return MaterialApp.router(
+    return ShadApp.router(
       title: 'GapFix',
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
       routerConfig: appRouter,
       debugShowCheckedModeBanner: false,
-      builder: (context, child) {
-        return authState.when(
-          data: (user) {
-            // You could use this to show global loading or sync user data
-            return child!;
-          },
-          loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
-          error: (e, s) => Scaffold(body: Center(child: Text('Error: $e'))),
-        );
+      materialThemeBuilder: (context, shadTheme) {
+        return shadTheme.brightness == Brightness.dark ? AppTheme.dark : AppTheme.light;
       },
+      darkTheme: ShadThemeData(
+        brightness: Brightness.dark,
+        colorScheme: const ShadSlateColorScheme.dark(),
+      ),
+      theme: ShadThemeData(
+        brightness: Brightness.light,
+        colorScheme: const ShadSlateColorScheme.light(),
+      ),
     );
   }
 }

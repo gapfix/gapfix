@@ -167,7 +167,7 @@ class WelcomeScreen extends StatelessWidget {
                   child: Text(
                     'Continue with Google',
                     style: TextStyle(
-                      color: AppTheme.textDark.withOpacity(0.8),
+                      color: AppTheme.textDark.withValues(alpha: 0.8),
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),

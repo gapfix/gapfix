@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/auth_provider.dart';
 import '../../core/theme.dart';
-import 'library_screen.dart';
-import 'library_provider.dart';
-
+import '../../core/widgets/liquid_glass_nav_bar.dart';
+import '../calendar/calendar_screen.dart';
+import '../shop/tutor_shop_screen.dart';
+import '../chat/chat_list_screen.dart';
 
 
 class TutorDashboardScreen extends ConsumerWidget {
@@ -14,66 +16,76 @@ class TutorDashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(userProfileProvider).value;
-    if (user == null) return const SizedBox();
-
-    return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundImage: user.imageResourceLink != null 
-                      ? CachedNetworkImageProvider(user.imageResourceLink!) 
-                      : null,
-                    child: user.imageResourceLink == null ? const Icon(Icons.person) : null,
-                  ),
-                  const SizedBox(width: 16),
-                  Column(
+    final userAsync = ref.watch(userProfileProvider);
+    
+    return userAsync.maybeWhen(
+      data: (user) {
+        if (user == null) return const Center(child: Text('User not found'));
+        
+        return Scaffold(
+          body: SafeArea(
+            child: Center(
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Hello,', style: TextStyle(color: AppTheme.textSecondary, fontSize: 16)),
-                      Text(user.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 28,
+                            backgroundImage: user.imageResourceLink != null 
+                              ? CachedNetworkImageProvider(user.imageResourceLink!) 
+                              : null,
+                            child: user.imageResourceLink == null ? const Icon(Icons.person) : null,
+                          ),
+                          const SizedBox(width: 16),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Hello,', style: TextStyle(color: AppTheme.textSecondary, fontSize: 16)),
+                              Text(user.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 32),
+                      
+                      Row(
+                        children: [
+                          _buildStatCard(context, 'Earnings', '\$${user.earnedMoney.toStringAsFixed(2)}', Icons.payments_outlined, Colors.green),
+                          const SizedBox(width: 16),
+                          _buildStatCard(context, 'Lessons', user.lessonsCount.toString(), Icons.school_outlined, Colors.blue),
+                        ],
+                      ),
+                      
+                      const SizedBox(height: 32),
+                      Text('NEXT LESSON', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
+                      const SizedBox(height: 12),
+                      
+                      _buildNextLessonCard(context),
+
+                      const SizedBox(height: 32),
+                      Text('QUICK ACTIONS', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          _buildActionButton(context, 'Subjects', Icons.book_outlined, () => ref.read(bottomNavIndexProvider.notifier).state = 2),
+                          const SizedBox(width: 12),
+                          _buildActionButton(context, 'Calendar', Icons.calendar_today_outlined, () => ref.read(bottomNavIndexProvider.notifier).state = 1),
+                        ],
+                      ),
                     ],
                   ),
-                ],
+                ),
               ),
-              const SizedBox(height: 32),
-              
-              Row(
-                children: [
-                  _buildStatCard(context, 'Earnings', '\$${user.earnedMoney.toStringAsFixed(2)}', Icons.payments_outlined, Colors.green),
-                  const SizedBox(width: 16),
-                  _buildStatCard(context, 'Lessons', user.lessonsCount.toString(), Icons.school_outlined, Colors.blue),
-                ],
-              ),
-              
-              const SizedBox(height: 32),
-              Text('NEXT LESSON', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
-              const SizedBox(height: 12),
-              
-              // Simplification of lesson fetching for now
-              _buildNextLessonCard(context),
-
-              const SizedBox(height: 32),
-              Text('QUICK ACTIONS', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  _buildActionButton(context, 'Subjects', Icons.book_outlined, () => ref.read(bottomNavIndexProvider.notifier).state = 2),
-                  const SizedBox(width: 12),
-                  _buildActionButton(context, 'Calendar', Icons.calendar_today_outlined, () => ref.read(bottomNavIndexProvider.notifier).state = 1),
-                ],
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
+      orElse: () => const Center(child: CircularProgressIndicator.adaptive()),
     );
   }
 
@@ -88,7 +100,7 @@ class TutorDashboardScreen extends ConsumerWidget {
           border: isDark ? Border.all(color: Colors.white10) : null,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             )
@@ -117,7 +129,7 @@ class TutorDashboardScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primary.withOpacity(isDark ? 0.2 : 0.3),
+            color: AppTheme.primary.withValues(alpha: isDark ? 0.2 : 0.3),
             blurRadius: 15,
             offset: const Offset(0, 8),
           )
@@ -165,90 +177,101 @@ class StudentDashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(userProfileProvider).value;
-    if (user == null) return const SizedBox();
+    final userAsync = ref.watch(userProfileProvider);
 
-    return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
+    return userAsync.maybeWhen(
+      data: (user) {
+        if (user == null) return const Center(child: Text('User not found'));
+        
+        return Scaffold(
+          body: SafeArea(
+            child: Center(
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Hello,', style: TextStyle(color: AppTheme.textSecondary, fontSize: 16)),
-                      Text(user.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Hello,', style: TextStyle(color: AppTheme.textSecondary, fontSize: 16)),
+                              Text(user.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          CircleAvatar(
+                            radius: 24,
+                            backgroundImage: user.imageResourceLink != null 
+                              ? CachedNetworkImageProvider(user.imageResourceLink!) 
+                              : null,
+                            child: user.imageResourceLink == null ? const Icon(Icons.person) : null,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 32),
+                      
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [AppTheme.primary, AppTheme.primary.withValues(alpha: 0.8)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: Row(
+                          children: [
+                            _buildStudentStat('0.0h', 'Learning Hours'),
+                            Container(width: 1, height: 40, color: Colors.white24),
+                            _buildStudentStat('0', 'Active Courses'),
+                          ],
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 32),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('UPCOMING LESSON', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
+                          TextButton(onPressed: () => context.push("/calendar"), child: const Text('See all')),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      
+                      _buildEmptyLessonCard(context),
+
+
+                      const SizedBox(height: 32),
+                      const Text('QUICK ACTIONS', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          _buildActionButton(context, 'Library', Icons.local_library_outlined, () => context.push('/library')),
+                          const SizedBox(width: 12),
+                          _buildActionButton(context, 'Tutors', Icons.search, () => ref.read(bottomNavIndexProvider.notifier).state = 1),
+                        ],
+                      ),
+
+                      const SizedBox(height: 32),
+                      const Text('EXPLORE', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
+                      const SizedBox(height: 12),
+                      _buildExploreCard(context, 'Find a Tutor', 'Browse experts in your interested subjects', Icons.search, () {
+                        ref.read(bottomNavIndexProvider.notifier).state = 1;
+                      }),
                     ],
                   ),
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundImage: user.imageResourceLink != null 
-                      ? CachedNetworkImageProvider(user.imageResourceLink!) 
-                      : null,
-                    child: user.imageResourceLink == null ? const Icon(Icons.person) : null,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
-              
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppTheme.primary, AppTheme.primary.withOpacity(0.8)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Row(
-                  children: [
-                    _buildStudentStat('0.0h', 'Learning Hours'),
-                    Container(width: 1, height: 40, color: Colors.white24),
-                    _buildStudentStat('0', 'Active Courses'),
-                  ],
                 ),
               ),
-              
-              const SizedBox(height: 32),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('UPCOMING LESSON', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
-                  TextButton(onPressed: () => context.push("/calendar"), child: const Text('See all')),
-                ],
-              ),
-              const SizedBox(height: 12),
-              
-              _buildEmptyLessonCard(context),
-
-
-              const SizedBox(height: 32),
-              const Text('QUICK ACTIONS', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  _buildActionButton(context, 'Library', Icons.local_library_outlined, () => context.push('/library')),
-                  const SizedBox(width: 12),
-                  _buildActionButton(context, 'Tutors', Icons.search, () => ref.read(bottomNavIndexProvider.notifier).state = 1),
-                ],
-              ),
-
-              const SizedBox(height: 32),
-              const Text('EXPLORE', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
-              const SizedBox(height: 12),
-              _buildExploreCard(context, 'Find a Tutor', 'Browse experts in your interested subjects', Icons.search, () {
-                ref.read(bottomNavIndexProvider.notifier).state = 1;
-              }),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
+      orElse: () => const Center(child: CircularProgressIndicator.adaptive()),
     );
   }
 
@@ -321,7 +344,7 @@ class StudentDashboardScreen extends ConsumerWidget {
           border: isDark ? Border.all(color: Colors.white10) : null,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
               blurRadius: 10,
               offset: const Offset(0, 4),
             )
@@ -331,7 +354,7 @@ class StudentDashboardScreen extends ConsumerWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: AppTheme.primary.withOpacity(0.1), shape: BoxShape.circle),
+              decoration: BoxDecoration(color: AppTheme.primary.withValues(alpha: 0.1), shape: BoxShape.circle),
               child: Icon(icon, color: AppTheme.primary),
             ),
             const SizedBox(width: 16),
@@ -364,7 +387,14 @@ class PlaceholderScreen extends StatelessWidget {
   );
 }
 
-final bottomNavIndexProvider = StateProvider<int>((ref) => 0);
+class BottomNavIndex extends Notifier<int> {
+  @override
+  int build() => 0;
+  @override
+  set state(int value) => super.state = value;
+}
+
+final bottomNavIndexProvider = NotifierProvider<BottomNavIndex, int>(BottomNavIndex.new);
 
 class MainLayout extends ConsumerWidget {
   const MainLayout({super.key});
@@ -382,36 +412,46 @@ class MainLayout extends ConsumerWidget {
         final items = isTutor ? _tutorNavItems : _studentNavItems;
         final screens = isTutor ? _tutorScreens : _studentScreens;
 
+        final isIOS = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+        final liquidItems = isTutor ? _tutorLiquidItems : _studentLiquidItems;
+
         return Scaffold(
+          extendBody: isIOS,
           body: IndexedStack(
             index: selectedIndex,
             children: screens,
           ),
-          bottomNavigationBar: Container(
-            decoration: BoxDecoration(
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(Theme.of(context).brightness == Brightness.dark ? 0.3 : 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, -2),
+          bottomNavigationBar: isIOS
+              ? LiquidGlassNavBar(
+                  currentIndex: selectedIndex,
+                  onTap: (index) => ref.read(bottomNavIndexProvider.notifier).state = index,
+                  items: liquidItems,
+                )
+              : Container(
+                  decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.3 : 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, -2),
+                      ),
+                    ],
+                  ),
+                  child: BottomNavigationBar(
+                    currentIndex: selectedIndex,
+                    onTap: (index) => ref.read(bottomNavIndexProvider.notifier).state = index,
+                    type: BottomNavigationBarType.fixed,
+                    selectedItemColor: AppTheme.primary,
+                    unselectedItemColor: Colors.grey,
+                    showUnselectedLabels: true,
+                    selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                    unselectedLabelStyle: const TextStyle(fontSize: 11),
+                    items: items,
+                  ),
                 ),
-              ],
-            ),
-            child: BottomNavigationBar(
-              currentIndex: selectedIndex,
-              onTap: (index) => ref.read(bottomNavIndexProvider.notifier).state = index,
-              type: BottomNavigationBarType.fixed,
-              selectedItemColor: AppTheme.primary,
-              unselectedItemColor: Colors.grey,
-              showUnselectedLabels: true,
-              selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-              unselectedLabelStyle: const TextStyle(fontSize: 11),
-              items: items,
-            ),
-          ),
         );
       },
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator.adaptive())),
       error: (e, s) => Scaffold(body: Center(child: Text('Error: $e'))),
     );
   }
@@ -434,18 +474,34 @@ class MainLayout extends ConsumerWidget {
 
   List<Widget> get _tutorScreens => const [
     TutorDashboardScreen(),
-    PlaceholderScreen(title: 'Tutor Calendar'),
+    CalendarScreen(isStudent: false),
     PlaceholderScreen(title: 'My Subjects'),
-    PlaceholderScreen(title: 'Chat (Students)'),
+    ChatListScreen(),
     PlaceholderScreen(title: 'Tutor Settings'),
   ];
 
   List<Widget> get _studentScreens => const [
     StudentDashboardScreen(),
-    PlaceholderScreen(title: 'Tutor Shop'),
-    PlaceholderScreen(title: 'Student Calendar'),
-    PlaceholderScreen(title: 'Chat (Tutors)'),
+    TutorShopScreen(),
+    CalendarScreen(isStudent: true),
+    ChatListScreen(),
     PlaceholderScreen(title: 'Student Settings'),
+  ];
+
+  List<LiquidGlassNavItem> get _tutorLiquidItems => const [
+    LiquidGlassNavItem(icon: Icons.dashboard_outlined, activeIcon: Icons.dashboard, label: 'Dashboard'),
+    LiquidGlassNavItem(icon: Icons.calendar_today_outlined, activeIcon: Icons.calendar_today, label: 'Calendar'),
+    LiquidGlassNavItem(icon: Icons.book_outlined, activeIcon: Icons.book, label: 'Subjects'),
+    LiquidGlassNavItem(icon: Icons.chat_bubble_outline, activeIcon: Icons.chat_bubble, label: 'Chat'),
+    LiquidGlassNavItem(icon: Icons.person_outline, activeIcon: Icons.person, label: 'Profile'),
+  ];
+
+  List<LiquidGlassNavItem> get _studentLiquidItems => const [
+    LiquidGlassNavItem(icon: Icons.dashboard_outlined, activeIcon: Icons.dashboard, label: 'Dashboard'),
+    LiquidGlassNavItem(icon: Icons.search, activeIcon: Icons.search, label: 'Tutors'),
+    LiquidGlassNavItem(icon: Icons.calendar_today_outlined, activeIcon: Icons.calendar_today, label: 'Calendar'),
+    LiquidGlassNavItem(icon: Icons.chat_bubble_outline, activeIcon: Icons.chat_bubble, label: 'Chat'),
+    LiquidGlassNavItem(icon: Icons.person_outline, activeIcon: Icons.person, label: 'Profile'),
   ];
 }
 

@@ -38,20 +38,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           final user = ref.read(firebaseAuthProvider).currentUser;
           if (user != null) {
             final profile = await ref.read(userProfileProvider.future);
+            if (!mounted) return;
+            
             if (profile != null) {
               if (profile.isComplete) {
-                if (mounted) context.go('/home');
+                context.go('/home');
               } else {
-                if (mounted) {
-                  if (profile.role == 'Student') {
-                    context.go('/student-preferences');
-                  } else {
-                    context.go('/tutor-subjects');
-                  }
+                if (profile.role == 'Student') {
+                  context.go('/student-preferences');
+                } else {
+                  context.go('/tutor-subjects');
                 }
               }
             } else {
-              if (mounted) context.go('/signup-role');
+              context.go('/signup-role');
             }
           }
         },
@@ -120,9 +120,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               if (authState.isLoading)
                 const Center(child: CircularProgressIndicator())
               else
-                ElevatedButton(
-                  onPressed: _login,
-                  child: const Text('LOG IN'),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: OutlinedButton(
+                    onPressed: _login,
+                    style: OutlinedButton.styleFrom(
+                      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                      side: const BorderSide(color: AppTheme.primary, width: 2),
+                    ),
+                    child: const Text(
+                      'LOG IN',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                  ),
                 ),
               
               const SizedBox(height: 24),

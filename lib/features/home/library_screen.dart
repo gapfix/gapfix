@@ -3,7 +3,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:gapfix/core/file_opener.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import '../../core/theme.dart';
@@ -46,7 +46,7 @@ class LibraryScreen extends ConsumerWidget {
             },
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: CircularProgressIndicator.adaptive()),
         error: (e, s) => Center(child: Text('Error: $e')),
       ),
       floatingActionButton: FloatingActionButton(
@@ -133,7 +133,7 @@ class SubjectFilesBottomSheet extends ConsumerWidget {
                 ),
               );
             },
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => const Center(child: CircularProgressIndicator.adaptive()),
             error: (e, s) => Text('Error: $e'),
           ),
         ],
@@ -143,16 +143,13 @@ class SubjectFilesBottomSheet extends ConsumerWidget {
 
   void _viewFile(BuildContext context, ArchiveModel item) async {
     if (item.fileUrl.toLowerCase().contains('.pdf')) {
-      final uri = Uri.parse(item.fileUrl);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
+      await FileOpener.openFile(context, item.fileUrl, title: item.title);
     } else {
       showGeneralDialog(
         context: context,
         barrierDismissible: true,
         barrierLabel: 'Close',
-        barrierColor: Colors.black.withOpacity(0.9),
+        barrierColor: Colors.black.withValues(alpha: 0.9),
         pageBuilder: (context, anim1, anim2) {
           return Scaffold(
             backgroundColor: Colors.transparent,
@@ -167,7 +164,7 @@ class SubjectFilesBottomSheet extends ConsumerWidget {
                 child: CachedNetworkImage(
                   imageUrl: item.fileUrl,
                   fit: BoxFit.contain,
-                  placeholder: (context, url) => const CircularProgressIndicator(),
+                  placeholder: (context, url) => const CircularProgressIndicator.adaptive(),
                   errorWidget: (context, url, error) => const Icon(Icons.error, color: Colors.white),
                 ),
               ),
@@ -179,9 +176,9 @@ class SubjectFilesBottomSheet extends ConsumerWidget {
   }
 
   void _confirmDelete(BuildContext context, WidgetRef ref, ArchiveModel item) {
-    showDialog(
+    showAdaptiveDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AlertDialog.adaptive(
         title: const Text('Delete File'),
         content: Text('Are you sure you want to delete "${item.title}"?'),
         actions: [
@@ -230,8 +227,11 @@ class _AddLibraryFileBottomSheetState extends ConsumerState<AddLibraryFileBottom
           _subjects.addAll(data.whereType<String>());
         } else if (data is Map) {
           data.forEach((key, value) {
-            if (value is String) _subjects.add(value);
-            else if (value is Map) _subjects.add(value['en'] ?? key);
+            if (value is String) {
+              _subjects.add(value);
+            } else if (value is Map) {
+              _subjects.add(value['en'] ?? key);
+            }
           });
         }
         _subjects.sort();
@@ -295,7 +295,7 @@ class _AddLibraryFileBottomSheetState extends ConsumerState<AddLibraryFileBottom
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            value: _selectedSubject,
+            initialValue: _selectedSubject,
             hint: const Text('Select Subject'),
             items: _subjects.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
             onChanged: (v) => setState(() => _selectedSubject = v),
@@ -308,7 +308,7 @@ class _AddLibraryFileBottomSheetState extends ConsumerState<AddLibraryFileBottom
           ),
           const SizedBox(height: 32),
           if (state.isLoading)
-            const Center(child: CircularProgressIndicator())
+            const Center(child: CircularProgressIndicator.adaptive())
           else
             ElevatedButton(onPressed: _upload, child: const Text('UPLOAD TO LIBRARY')),
           const SizedBox(height: 32),

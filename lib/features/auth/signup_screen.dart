@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter/foundation.dart';
 import '../../core/auth_provider.dart';
 import '../../core/theme.dart';
+import '../../core/adaptive_utils.dart';
+import '../../core/toast_utils.dart';
 import '../../models/user_model.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
@@ -49,19 +51,11 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   }
 
   Future<void> _selectDate() async {
-    final DateTime? picked = await showDatePicker(
+    final DateTime? picked = await AdaptiveUtils.showAdaptiveDatePicker(
       context: context,
       initialDate: DateTime.now().subtract(const Duration(days: 365 * 18)),
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(primary: AppTheme.primary),
-          ),
-          child: child!,
-        );
-      },
     );
     if (picked != null) {
       setState(() {
@@ -74,12 +68,12 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     if (!_formKey.currentState!.validate()) return;
     
     if (!_agreeTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please agree to terms and conditions')));
+      ToastUtils.show(context, 'Please agree to terms and conditions', isError: true);
       return;
     }
 
     if (widget.role == 'Tutor' && _imageFile == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile picture is required for tutors')));
+      ToastUtils.show(context, 'Profile picture is required for tutors', isError: true);
       return;
     }
 
@@ -114,12 +108,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
         },
         loading: () {},
         error: (e, s) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(e.toString()),
-              backgroundColor: Colors.red,
-            ),
-          );
+          ToastUtils.show(context, e.toString(), isError: true);
         },
       );
     });
@@ -210,7 +199,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               const SizedBox(height: 16),
 
               DropdownButtonFormField<String>(
-                value: _gender,
+                initialValue: _gender,
                 decoration: const InputDecoration(labelText: 'Gender'),
                 items: ['Male', 'Female', 'Other']
                     .map((g) => DropdownMenuItem(value: g, child: Text(g)))
@@ -264,7 +253,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               ),
               const SizedBox(height: 24),
 
-              CheckboxListTile(
+              CheckboxListTile.adaptive(
                 value: _agreeTerms,
                 onChanged: (v) => setState(() => _agreeTerms = v!),
                 title: const Text('I agree to the Terms and Conditions'),
@@ -275,7 +264,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               const SizedBox(height: 24),
 
               if (authState.isLoading)
-                const CircularProgressIndicator()
+                const CircularProgressIndicator.adaptive()
               else
                 ElevatedButton(
                   onPressed: _submit,

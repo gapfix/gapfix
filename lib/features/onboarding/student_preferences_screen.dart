@@ -41,8 +41,11 @@ class _StudentPreferencesScreenState extends ConsumerState<StudentPreferencesScr
          // Handle map structure if needed (translations)
          setState(() {
           data.forEach((key, value) {
-            if (value is String) _allSubjects.add(value);
-            else if (value is Map) _allSubjects.add(value['en'] ?? key);
+            if (value is String) {
+              _allSubjects.add(value);
+            } else if (value is Map) {
+              _allSubjects.add(value['en'] ?? key);
+            }
           });
           _allSubjects.sort();
           _filteredSubjects = List.from(_allSubjects);
@@ -102,7 +105,7 @@ class _StudentPreferencesScreenState extends ConsumerState<StudentPreferencesScr
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator.adaptive())
           : Padding(
               padding: const EdgeInsets.all(24.0),
               child: Column(
@@ -134,7 +137,7 @@ class _StudentPreferencesScreenState extends ConsumerState<StudentPreferencesScr
                     children: _selectedSubjects.map((s) => Chip(
                       label: Text(s),
                       onDeleted: () => _toggleSubject(s),
-                      backgroundColor: AppTheme.primary.withOpacity(0.1),
+                      backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
                       labelStyle: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold),
                       deleteIconColor: AppTheme.primary,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

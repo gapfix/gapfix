@@ -1,6 +1,6 @@
-# gapfix
+# Gapfix
 
-A new Flutter project.
+### Mind the gap, fix the flow.
 
 ## Getting Started
 
