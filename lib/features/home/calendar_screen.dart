@@ -37,16 +37,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       body: bookingsAsync.when(
         data: (bookings) {
           final selectedBookings = bookings.where((b) {
-            if (b.lessonDate == null) return false;
-            try {
-              // Assuming lessonDate is in "dd/MM/yyyy" or similar format
-              final parts = b.lessonDate!.split('/');
-              if (parts.length == 3) {
-                final date = DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
-                return isSameDay(date, _selectedDay);
-              }
-            } catch (_) {}
-            return false;
+            final date = DateTime.fromMillisecondsSinceEpoch(b.timestamp);
+            return isSameDay(date, _selectedDay);
           }).toList();
 
           return Column(
@@ -68,19 +60,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 },
                 eventLoader: (day) {
                   return bookings.where((b) {
-                    if (b.lessonDate == null) return false;
-                    try {
-                      final parts = b.lessonDate!.split('/');
-                      if (parts.length == 3) {
-                        final date = DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
-                        return isSameDay(date, day);
-                      }
-                    } catch (_) {}
-                    return false;
+                    final date = DateTime.fromMillisecondsSinceEpoch(b.timestamp);
+                    return isSameDay(date, day);
                   }).toList();
                 },
                 calendarStyle: CalendarStyle(
-                  todayDecoration: BoxDecoration(color: AppTheme.primary.withOpacity(0.3), shape: BoxShape.circle),
+                  todayDecoration: BoxDecoration(color: AppTheme.primary.withValues(alpha: 0.3), shape: BoxShape.circle),
                   selectedDecoration: const BoxDecoration(color: AppTheme.primary, shape: BoxShape.circle),
                   markerDecoration: const BoxDecoration(color: Colors.orange, shape: BoxShape.circle),
                 ),
@@ -117,6 +102,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   }
 
   Widget _buildBookingCard(BookingModel booking, bool isDark) {
+    final timeFormat = DateFormat('HH:mm');
+    final dt = DateTime.fromMillisecondsSinceEpoch(booking.timestamp);
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -126,10 +114,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           children: [
             Row(
               children: [
-                CircleAvatar(
+                const CircleAvatar(
                   radius: 24,
-                  backgroundImage: booking.tutorImage != null ? CachedNetworkImageProvider(booking.tutorImage!) : null,
-                  child: booking.tutorImage == null ? const Icon(Icons.person) : null,
+                  child: Icon(Icons.person),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -144,7 +131,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: _getStatusColor(booking.status).withOpacity(0.1),
+                    color: _getStatusColor(booking.status).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -162,18 +149,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   children: [
                     const Icon(Icons.access_time, size: 18, color: Colors.grey),
                     const SizedBox(width: 8),
-                    Text(booking.lessonTime ?? 'TBD', style: const TextStyle(fontWeight: FontWeight.w500)),
+                    Text(timeFormat.format(dt), style: const TextStyle(fontWeight: FontWeight.w500)),
                     const SizedBox(width: 16),
                     const Icon(Icons.timer_outlined, size: 18, color: Colors.grey),
                     const SizedBox(width: 8),
                     Text('${booking.duration} min', style: const TextStyle(fontWeight: FontWeight.w500)),
                   ],
                 ),
-                if (booking.price > 0)
-                  Text(
-                    '\$${booking.price}',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.primary),
-                  ),
               ],
             ),
           ],

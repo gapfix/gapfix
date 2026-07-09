@@ -56,6 +56,24 @@ class _AddCertificatesScreenState extends ConsumerState<AddCertificatesScreen> {
     }
   }
 
+  Future<void> _markProfileComplete() async {
+    final user = ref.read(authStateProvider).value;
+    if (user == null) return;
+
+    try {
+      await FirebaseDatabase.instance
+          .ref('Users/Tutor/${user.uid}')
+          .update({'isComplete': true});
+    } catch (e) {
+      debugPrint('Error marking profile complete: $e');
+    }
+  }
+
+  Future<void> _goToHome() async {
+    await _markProfileComplete();
+    if (mounted) context.go('/home');
+  }
+
   Future<void> _pickFile() async {
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
@@ -145,7 +163,7 @@ class _AddCertificatesScreenState extends ConsumerState<AddCertificatesScreen> {
         title: const Text('Professional Certificates'),
         actions: [
           TextButton(
-            onPressed: () => context.go('/home'),
+            onPressed: _goToHome,
             child: const Text('SKIP', style: TextStyle(color: AppTheme.primary)),
           ),
         ],
@@ -229,7 +247,7 @@ class _AddCertificatesScreenState extends ConsumerState<AddCertificatesScreen> {
             const SizedBox(height: 24),
             if (_uploadedCertificates.isNotEmpty)
               ElevatedButton(
-                onPressed: () => context.go('/home'),
+                onPressed: _goToHome,
                 child: const Text('CONTINUE TO DASHBOARD'),
               ),
           ],

@@ -11,6 +11,10 @@ import '../features/home/main_layout.dart';
 import '../features/home/library_screen.dart';
 import '../features/home/pdf_viewer_screen.dart';
 import '../features/calendar/sessions_screen.dart';
+import '../features/chat/chat_detail_screen.dart';
+import '../features/chat/homeworks_screen.dart';
+import '../features/calendar/video_call_screen.dart';
+import '../models/booking_model.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
@@ -79,6 +83,40 @@ final appRouter = GoRouter(
         return PdfViewerScreen(
           url: extra['url'] as String,
           title: extra['title'] as String,
+        );
+      },
+    ),
+    GoRoute(
+      path: '/chat-detail',
+      name: 'chat-detail',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>;
+        return ChatDetailScreen(
+          otherUserId: extra['otherUserId'] as String,
+          otherUserName: extra['otherUserName'] as String,
+        );
+      },
+    ),
+    GoRoute(
+      path: '/homeworks',
+      name: 'homeworks',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>;
+        return HomeworksScreen(
+          otherUserId: extra['otherUserId'] as String,
+          otherUserName: extra['otherUserName'] as String,
+          isStudent: extra['isStudent'] as bool? ?? true,
+        );
+      },
+    ),
+    GoRoute(
+      path: '/video-call',
+      name: 'video-call',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>;
+        return VideoCallScreen(
+          booking: extra['booking'] as BookingModel,
+          isStudent: extra['isStudent'] as bool,
         );
       },
     ),

@@ -11,8 +11,9 @@ class HomeworkMessageModel {
   final int lessonTimestamp;
   final String? subject;
   final String? fileUrl;
-  final String? homeworkStatus; // 'done', 'failed', etc.
+  final String? homeworkStatus; // 'done', 'failed', 'awaiting_review', etc.
   final String? solutionUrl;
+  final String? tutorFeedback;
 
   HomeworkMessageModel({
     required this.documentId,
@@ -27,6 +28,7 @@ class HomeworkMessageModel {
     this.fileUrl,
     this.homeworkStatus,
     this.solutionUrl,
+    this.tutorFeedback,
   });
 
   factory HomeworkMessageModel.fromFirestore(DocumentSnapshot doc, String chatId) {
@@ -44,6 +46,7 @@ class HomeworkMessageModel {
       fileUrl: map['fileUrl'] as String?,
       homeworkStatus: map['homeworkStatus'] as String?,
       solutionUrl: map['solutionUrl'] as String?,
+      tutorFeedback: map['tutorFeedback'] as String?,
     );
   }
 }

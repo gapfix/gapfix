@@ -37,11 +37,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         data: (_) async {
           final user = ref.read(firebaseAuthProvider).currentUser;
           if (user != null) {
-            final profile = await ref.read(userProfileProvider.future);
+            // Refresh the provider to get fresh data after login
+            final profile = await ref.refresh(userProfileProvider.future);
             if (!mounted) return;
             
             if (profile != null) {
-              if (profile.isComplete) {
+              if (!profile.skippedRegistration) {
                 context.go('/home');
               } else {
                 if (profile.role == 'Student') {
@@ -157,3 +158,5 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 }
+
+

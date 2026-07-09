@@ -9,6 +9,7 @@ import 'package:gapfix/core/lesson_time_helper.dart';
 import 'package:gapfix/core/toast_utils.dart';
 import 'package:intl/intl.dart';
 import 'package:gapfix/core/theme.dart';
+import 'package:go_router/go_router.dart';
 
 class SessionsScreen extends StatefulWidget {
   final bool isStudent;
@@ -218,7 +219,10 @@ class _SessionsScreenState extends State<SessionsScreen> with SingleTickerProvid
 
   void _handleJoin(BookingModel booking) {
     if (LessonTimeHelper.isJoinable(booking, widget.isStudent)) {
-      ToastUtils.show(context, 'Joining Video Call...');
+      context.push('/video-call', extra: {
+        'booking': booking,
+        'isStudent': widget.isStudent,
+      });
     } else {
       final minutes = LessonTimeHelper.minutesUntilJoinable(booking, widget.isStudent);
       if (minutes > 0) {

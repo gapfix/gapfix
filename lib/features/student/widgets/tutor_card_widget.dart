@@ -129,6 +129,8 @@ class _TutorCardWidgetState extends State<TutorCardWidget> {
                     label: "Homeworks",
                     badgeCount: tutor.unreadHomeworkCount,
                     onTap: () {
+                      // FIXED: Reverted back to the original function structure.
+                      // The bottom sheet now checks the database directly to verify the tutor role!
                       showHomeworkBottomSheet(context, tutor);
                     },
                   ),

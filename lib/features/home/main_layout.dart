@@ -408,7 +408,8 @@ class MainLayout extends ConsumerWidget {
       data: (user) {
         if (user == null) return const Scaffold(body: Center(child: Text('User not found')));
 
-        final isTutor = user.role == 'Tutor';
+        final isTutor = user.role.toLowerCase() == 'tutor';
+        debugPrint('DEBUG MainLayout - Role: "${user.role}","${user.email}", isTutor: $isTutor');
         final items = isTutor ? _tutorNavItems : _studentNavItems;
         final screens = isTutor ? _tutorScreens : _studentScreens;
 
@@ -416,7 +417,6 @@ class MainLayout extends ConsumerWidget {
         final liquidItems = isTutor ? _tutorLiquidItems : _studentLiquidItems;
 
         return Scaffold(
-          extendBody: isIOS,
           body: IndexedStack(
             index: selectedIndex,
             children: screens,

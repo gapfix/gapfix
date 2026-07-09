@@ -14,18 +14,62 @@ final authStateProvider = StreamProvider<User?>((ref) {
 
 final userProfileProvider = FutureProvider<UserModel?>((ref) async {
   final user = ref.watch(authStateProvider).value;
+  debugPrint('userProfileProvider: auth user = ${user?.uid}');
   if (user == null) return null;
 
   final db = ref.watch(databaseProvider);
-  
-  var snapshot = await db.ref('Users/Student/${user.uid}').get();
-  if (snapshot.exists) {
-    return UserModel.fromMap(snapshot.value as Map);
+
+  bool isValidProfile(Map<dynamic, dynamic> map) {
+    if (map.containsKey('role') && map['role'] is String) return true;
+    if (map.containsKey('email') && map['email'] is String) return true;
+    if (map.containsKey('name') && map['name'] is String) return true;
+    return false;
   }
   
-  snapshot = await db.ref('Users/Tutor/${user.uid}').get();
-  if (snapshot.exists) {
-    return UserModel.fromMap(snapshot.value as Map);
+  var snapshot = await db.ref('Users/Tutor/${user.uid}').get();
+  debugPrint('userProfileProvider: Tutor snapshot exists=${snapshot.exists}, value=${snapshot.value}');
+  if (snapshot.exists && snapshot.value is Map) {
+    final map = snapshot.value as Map;
+    if (isValidProfile(map)) {
+      try {
+        return UserModel.fromMap(map);
+      } catch (e) {
+        debugPrint('userProfileProvider: Error parsing Tutor snapshot: $e');
+      }
+    } else {
+      debugPrint('userProfileProvider: Tutor snapshot invalid profile data, skipping');
+    }
+  }
+
+  snapshot = await db.ref('Users/Student/${user.uid}').get();
+  debugPrint('userProfileProvider: Student snapshot exists=${snapshot.exists}, value=${snapshot.value}');
+  if (snapshot.exists && snapshot.value is Map) {
+    final map = snapshot.value as Map;
+    if (isValidProfile(map)) {
+      try {
+        return UserModel.fromMap(map);
+      } catch (e) {
+        debugPrint('userProfileProvider: Error parsing Student snapshot: $e');
+      }
+    } else {
+      debugPrint('userProfileProvider: Student snapshot invalid profile data, skipping');
+    }
+  }
+
+  // Fallback: try reading under Users/<uid> in case data shape differs
+  snapshot = await db.ref('Users/${user.uid}').get();
+  debugPrint('userProfileProvider: Fallback snapshot exists=${snapshot.exists}, value=${snapshot.value}');
+  if (snapshot.exists && snapshot.value is Map) {
+    final map = snapshot.value as Map;
+    if (isValidProfile(map)) {
+      try {
+        return UserModel.fromMap(map);
+      } catch (e) {
+        debugPrint('userProfileProvider: Error parsing fallback snapshot: $e');
+      }
+    } else {
+      debugPrint('userProfileProvider: Fallback snapshot invalid profile data, returning null');
+    }
   }
   
   return null;

@@ -102,6 +102,7 @@ class _TutorSubjectsScreenState extends ConsumerState<TutorSubjectsScreen> {
         'teachMode': _teachMode,
         'earnedMoney': 0,
         'lessonsCount': 0,
+        'isComplete': true,
       });
       if (mounted) context.go('/add-certificates');
     }

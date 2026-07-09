@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../models/student_tutor_display_model.dart';
 import '../../../models/firestore_message_model.dart';
@@ -26,6 +27,10 @@ class HomeworkBottomSheet extends StatefulWidget {
 class _HomeworkBottomSheetState extends State<HomeworkBottomSheet> {
   final String _currentUserId = FirebaseAuth.instance.currentUser!.uid;
   late String _chatId;
+  
+  // Set this to 'true' if you want to force the button to show up during testing
+  bool _isTutor = false; 
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -38,25 +43,125 @@ class _HomeworkBottomSheetState extends State<HomeworkBottomSheet> {
       _chatId = "${ids[0]}_${ids[1]}";
     }
     
+    _checkRole();
     _clearUnread();
+  }
+
+  Future<void> _checkRole() async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
+      
+      // Print current user ID to console to verify who is logged in
+      debugPrint('HomeworkSheet: Checking role for UID: $uid');
+      
+      final snap = await FirebaseDatabase.instance.ref('Users/Tutor/$uid').get();
+      
+      debugPrint('HomeworkSheet: RTDB path exists? ${snap.exists}');
+      debugPrint('HomeworkSheet: RTDB path value: ${snap.value}');
+
+      if (mounted) {
+        setState(() {
+          // If the path check fails in your environment, change this to: _isTutor = true; to force it
+          _isTutor = snap.exists; 
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('HomeworkSheet: Error checking role: $e');
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   void _clearUnread() {
     FirebaseFirestore.instance.collection("chats").doc(_chatId).update({
-      "unreadHomeworkCount.$_currentUserId": FieldValue.arrayRemove([]), // Using a trick to clear, or just set to 0
+      "unreadHomeworkCount.$_currentUserId": 0,
     }).catchError((e) {
-      // In case it's a nested field and doesn't exist yet, we can try a merge set or ignore
       FirebaseFirestore.instance.collection("chats").doc(_chatId).set({
         "unreadHomeworkCount": {
           _currentUserId: 0
         }
       }, SetOptions(merge: true));
     });
-    
-    // Better way:
-     FirebaseFirestore.instance.collection("chats").doc(_chatId).update({
-      "unreadHomeworkCount.$_currentUserId": 0,
-    });
+  }
+
+  void _showAddHomeworkDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E1E1E),
+          title: const Text(
+            "Add Homework",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'Homework Name',
+                    labelStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white.withOpacity(0.2))),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  dropdownColor: const Color(0xFF1E1E1E),
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'Select Subject',
+                    labelStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+                  ),
+                  items: const [],
+                  onChanged: (value) {},
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  dropdownColor: const Color(0xFF1E1E1E),
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'Select Lesson',
+                    labelStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+                  ),
+                  items: const [],
+                  onChanged: (value) {},
+                ),
+                const SizedBox(height: 24),
+                OutlinedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.add, color: Color(0xFF00B894)),
+                  label: const Text("Upload Homework File", style: TextStyle(color: Color(0xFF00B894))),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    side: const BorderSide(color: Color(0xFF00B894)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0, left: 8.0, right: 8.0),
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00B894),
+                  minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: const Text("Save Homework", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -85,13 +190,24 @@ class _HomeworkBottomSheetState extends State<HomeworkBottomSheet> {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              "Homeworks",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF2D3436),
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "Homeworks",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF2D3436),
+                  ),
+                ),
+                // Button displays if _isTutor is evaluated to true
+                if (_isTutor)
+                  IconButton(
+                    icon: const Icon(Icons.add_circle, color: Color(0xFF00B894), size: 28),
+                    onPressed: _showAddHomeworkDialog,
+                  ),
+              ],
             ),
             const SizedBox(height: 24),
             Expanded(
@@ -130,6 +246,7 @@ class _HomeworkBottomSheetState extends State<HomeworkBottomSheet> {
                         homework: homeworks[index],
                         chatId: _chatId,
                         otherUserId: widget.tutor.uid!,
+                        isStudent: !_isTutor, 
                       );
                     },
                   );
@@ -139,6 +256,6 @@ class _HomeworkBottomSheetState extends State<HomeworkBottomSheet> {
           ],
         ),
       ),
-    );
+    ); 
   }
-}
+} 

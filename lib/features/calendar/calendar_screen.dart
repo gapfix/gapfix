@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -28,6 +29,8 @@ class CalendarScreen extends StatefulWidget {
 }
 
 class _CalendarScreenState extends State<CalendarScreen> {
+  final _firestore = FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'gapfix');
+
   DateTime _currentMonth = DateTime.now();
   DateTime _selectedDate = DateTime.now();
 
@@ -105,7 +108,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     });
 
     // Fetch Homework (Chats -> Messages)
-    _chatsSub = FirebaseFirestore.instance
+    _chatsSub = FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'gapfix')
         .collection('chats')
         .where('participants', arrayContains: user.uid)
         .snapshots()
@@ -245,27 +248,51 @@ class _CalendarScreenState extends State<CalendarScreen> {
       final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['jpg', 'png', 'jpeg'],
+        withData: true,
       );
-      if (result != null && result.files.single.path != null) {
+      
+      if (result == null) {
+        print('FilePicker returned null');
+        return;
+      }
+      
+      print('File picked: ${result.files.single.name}');
+      print('Has bytes: ${result.files.single.bytes != null}');
+      print('Has path: ${result.files.single.path != null}');
+
+      if (result.files.single.path != null || result.files.single.bytes != null) {
         if (!mounted) return;
         ToastUtils.show(context, 'Uploading solution...');
 
         final cloudinary = CloudinaryPublic('dbugqpl3m', 'ml_default', cache: false);
-        final response = await cloudinary.uploadFile(
-          CloudinaryFile.fromFile(
-            result.files.single.path!,
-            folder: 'Solutions/${homework.chatId}',
-          ),
-        );
+        
+        CloudinaryResponse response;
+        if (kIsWeb || result.files.single.path == null) {
+          response = await cloudinary.uploadFile(
+            CloudinaryFile.fromBytesData(
+              result.files.single.bytes!.toList(),
+              identifier: result.files.single.name,
+              folder: 'Solutions/${homework.chatId}',
+            ),
+          );
+        } else {
+          response = await cloudinary.uploadFile(
+            CloudinaryFile.fromFile(
+              result.files.single.path!,
+              folder: 'Solutions/${homework.chatId}',
+            ),
+          );
+        }
 
-        await FirebaseFirestore.instance
+        await _firestore
             .collection('chats')
             .doc(homework.chatId)
             .collection('messages')
             .doc(homework.documentId)
             .update({
           'solutionUrl': response.secureUrl,
-          'homeworkStatus': 'done',
+          'homeworkStatus': 'awaiting_review',
+          'tutorFeedback': FieldValue.delete(),
         });
 
         if (mounted) {
@@ -282,7 +309,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Future<void> _handleCouldNotDoIt(HomeworkMessageModel homework) async {
     if (homework.chatId == null) return;
     try {
-      await FirebaseFirestore.instance
+      await _firestore
           .collection('chats')
           .doc(homework.chatId)
           .collection('messages')
@@ -294,6 +321,26 @@ class _CalendarScreenState extends State<CalendarScreen> {
     } catch (e) {
       if (mounted) {
         ToastUtils.show(context, 'Error: $e', isError: true);
+      }
+    }
+  }
+
+  Future<void> _handleMarkFeedback(HomeworkMessageModel homework, String feedback) async {
+    if (homework.chatId == null) return;
+    try {
+      await _firestore
+          .collection('chats')
+          .doc(homework.chatId)
+          .collection('messages')
+          .doc(homework.documentId)
+          .update({'tutorFeedback': feedback});
+      
+      if (mounted) {
+        ToastUtils.show(context, 'Marked as $feedback');
+      }
+    } catch (e) {
+      if (mounted) {
+        ToastUtils.show(context, 'Error updating feedback: $e', isError: true);
       }
     }
   }
@@ -606,7 +653,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 },
                 onJoin: (booking) {
                   if (LessonTimeHelper.isJoinable(booking, widget.isStudent)) {
-                    ToastUtils.show(context, 'Joining Video Call...');
+                    context.push('/video-call', extra: {
+                      'booking': booking,
+                      'isStudent': widget.isStudent,
+                    });
                   } else {
                     final minutes = LessonTimeHelper.minutesUntilJoinable(booking, widget.isStudent);
                     if (minutes > 0) {
@@ -780,6 +830,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               onUploadSolution: () => _handleUploadSolution(_homeworkForDate[index]),
               onCouldNotDoIt: () => _handleCouldNotDoIt(_homeworkForDate[index]),
               onArchive: () => _handleArchiveHomework(_homeworkForDate[index]),
+              onMarkFeedback: (feedback) => _handleMarkFeedback(_homeworkForDate[index], feedback),
             );
           },
         ),
