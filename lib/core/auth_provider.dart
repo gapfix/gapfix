@@ -174,6 +174,62 @@ class AuthNotifier extends Notifier<AsyncValue<void>> {
   Future<void> signOut() async {
     await _auth.signOut();
   }
+
+  /// Ports ForgotPass.resetPassword (Android): sends a Firebase reset email.
+  Future<void> sendPasswordReset(String email) async {
+    await _auth.sendPasswordResetEmail(email: email);
+  }
+
+  /// Ports ChangePasswordActivity.updatePassword: re-authenticates with the
+  /// old password, then sets the new one. Throws FirebaseAuthException.
+  Future<void> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null || user.email == null) {
+      throw FirebaseAuthException(code: 'no-current-user');
+    }
+    final credential = EmailAuthProvider.credential(
+      email: user.email!,
+      password: oldPassword,
+    );
+    await user.reauthenticateWithCredential(credential);
+    await user.updatePassword(newPassword);
+  }
+
+  /// Ports EditProfileActivity.deleteAccount: removes the database record,
+  /// then the auth user. Throws FirebaseAuthException with code
+  /// 'requires-recent-login' when the session is too old.
+  Future<void> deleteAccount(String role) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    await _db.ref('Users/$role/${user.uid}').remove();
+    await user.delete();
+  }
+
+  /// Ports the profile upload used in EditProfileActivity (Cloudinary,
+  /// unsigned preset, folder Users/<uid>). Returns the secure URL.
+  Future<String> uploadProfileImage(String path) async {
+    final uid = _auth.currentUser!.uid;
+    final response = await _cloudinary.uploadFile(
+      CloudinaryFile.fromFile(
+        path,
+        folder: 'Users/$uid',
+        resourceType: CloudinaryResourceType.Image,
+      ),
+    );
+    return response.secureUrl;
+  }
+
+  /// Ports EditProfileActivity.updateFirebaseProfile.
+  Future<void> updateProfile({
+    required String role,
+    required Map<String, Object?> updates,
+  }) async {
+    final uid = _auth.currentUser!.uid;
+    await _db.ref('Users/$role/$uid').update(updates);
+  }
 }
 
 final authNotifierProvider = NotifierProvider<AuthNotifier, AsyncValue<void>>(AuthNotifier.new);

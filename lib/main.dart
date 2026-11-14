@@ -1,6 +1,10 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import 'firebase_options.dart';
@@ -8,6 +12,8 @@ import 'core/router.dart';
 import 'core/theme.dart';
 
 import 'core/auth_provider.dart';
+import 'core/locale_provider.dart';
+import 'core/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,13 +22,32 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+  // Android: FirebaseDatabase.setPersistenceEnabled(true) in GapFixApplication.
+  if (!kIsWeb) {
+    try {
+      FirebaseDatabase.instance.setPersistenceEnabled(true);
+    } catch (_) {}
+  }
+
+  if (!kIsWeb) {
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    await NotificationService.instance.init();
+  }
+
   // Lock orientation to portrait on mobile
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  runApp(const ProviderScope(child: GapFixApp()));
+  // Restore the saved app language (port of Android LocaleHelper).
+  final container = ProviderContainer();
+  await container.read(localeProvider.notifier).load();
+
+  runApp(UncontrolledProviderScope(
+    container: container,
+    child: const GapFixApp(),
+  ));
 }
 
 class GapFixApp extends ConsumerWidget {
@@ -40,11 +65,20 @@ class GapFixApp extends ConsumerWidget {
 
     // Listen to auth state to handle global navigation if needed
     final authState = ref.watch(authStateProvider);
+    final locale = ref.watch(localeProvider);
+    ref.watch(lessonReminderSyncProvider);
 
     return ShadApp.router(
       title: 'GapFix',
       routerConfig: appRouter,
       debugShowCheckedModeBanner: false,
+      locale: locale,
+      supportedLocales: const [Locale('en'), Locale('ru'), Locale('hy')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       materialThemeBuilder: (context, shadTheme) {
         return shadTheme.brightness == Brightness.dark ? AppTheme.dark : AppTheme.light;
       },

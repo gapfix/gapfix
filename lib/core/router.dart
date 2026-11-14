@@ -15,6 +15,11 @@ import '../features/chat/chat_detail_screen.dart';
 import '../features/chat/homeworks_screen.dart';
 import '../features/calendar/video_call_screen.dart';
 import '../models/booking_model.dart';
+import '../features/auth/forgot_password_screen.dart';
+import '../features/profile/change_password_screen.dart';
+import '../features/profile/edit_profile_screen.dart';
+import '../features/reviews/write_review_screen.dart';
+import '../features/subjects/tutor_subject_management_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
@@ -26,6 +31,33 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/login',
       builder: (context, state) => const LoginScreen(),
+    ),
+    GoRoute(
+      path: '/forgot-password',
+      builder: (context, state) => const ForgotPasswordScreen(),
+    ),
+    GoRoute(
+      path: '/change-password',
+      builder: (context, state) => const ChangePasswordScreen(),
+    ),
+    GoRoute(
+      path: '/edit-profile/:role',
+      builder: (context, state) =>
+          EditProfileScreen(role: state.pathParameters['role']!),
+    ),
+    GoRoute(
+      path: '/manage-subjects',
+      builder: (context, state) => const TutorSubjectManagementScreen(),
+    ),
+    GoRoute(
+      path: '/write-review',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>;
+        return WriteReviewScreen(
+          bookingId: extra['bookingId'] as String,
+          tutorId: extra['tutorId'] as String,
+        );
+      },
     ),
     GoRoute(
       path: '/signup-role',

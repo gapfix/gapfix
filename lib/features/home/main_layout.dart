@@ -9,6 +9,8 @@ import '../../core/widgets/liquid_glass_nav_bar.dart';
 import '../calendar/calendar_screen.dart';
 import '../shop/tutor_shop_screen.dart';
 import '../chat/chat_list_screen.dart';
+import '../settings/settings_screen.dart';
+import '../subjects/tutor_subject_management_screen.dart';
 
 
 class TutorDashboardScreen extends ConsumerWidget {
@@ -475,9 +477,9 @@ class MainLayout extends ConsumerWidget {
   List<Widget> get _tutorScreens => const [
     TutorDashboardScreen(),
     CalendarScreen(isStudent: false),
-    PlaceholderScreen(title: 'My Subjects'),
+    TutorSubjectManagementScreen(),
     ChatListScreen(),
-    PlaceholderScreen(title: 'Tutor Settings'),
+    SettingsScreen(isStudent: false),
   ];
 
   List<Widget> get _studentScreens => const [
@@ -485,7 +487,7 @@ class MainLayout extends ConsumerWidget {
     TutorShopScreen(),
     CalendarScreen(isStudent: true),
     ChatListScreen(),
-    PlaceholderScreen(title: 'Student Settings'),
+    SettingsScreen(isStudent: true),
   ];
 
   List<LiquidGlassNavItem> get _tutorLiquidItems => const [
