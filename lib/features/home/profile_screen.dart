@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/auth_provider.dart';
 import '../../core/theme.dart';
 
@@ -49,9 +50,11 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 32),
                 
-                _buildProfileItem(Icons.person_outline, 'Personal Information', () {}),
+                _buildProfileItem(Icons.person_outline, 'Personal Information',
+                    () => context.push('/edit-profile/${user.role}')),
                 _buildProfileItem(Icons.notifications_none, 'Notifications', () {}),
-                _buildProfileItem(Icons.security, 'Security', () {}),
+                _buildProfileItem(Icons.security, 'Security',
+                    () => context.push('/change-password')),
                 _buildProfileItem(Icons.help_outline, 'Help & Support', () {}),
                 
                 const SizedBox(height: 32),

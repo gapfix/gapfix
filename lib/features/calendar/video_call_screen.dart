@@ -5,6 +5,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
+import '../../core/notification_service.dart';
 import '../../models/booking_model.dart';
 import 'package:go_router/go_router.dart';
 
@@ -44,7 +45,9 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     super.initState();
     _callRef = FirebaseDatabase.instance.ref('Calls').child(widget.booking.id);
     _bookingRef = FirebaseDatabase.instance.ref('Bookings').child(widget.booking.id);
-    
+    // Android VideoCallActivity.activeBookingId: no call push for this room.
+    NotificationService.instance.activeBookingId = widget.booking.id;
+
     _initAgora();
   }
 
@@ -209,16 +212,62 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     
     _classTimer?.cancel();
     
-    if (!widget.isStudent) {
-      // Update booking to finished
-      await _bookingRef.update({'status': 'finished'});
+    final isTutor = FirebaseAuth.instance.currentUser?.uid == widget.booking.tutorId;
+    if (isTutor) {
+      await _updateBookingStatusToFinished();
     }
-    
+
     _updateCallState('ended');
-    _leaveCall();
+    // Same order as Android finalizeCall: open the review prompt for
+    // students, then bump the tutor's lesson counter.
+    _addLessonCount();
+    await _leaveCall(openReview: widget.isStudent);
   }
 
-  Future<void> _leaveCall() async {
+  /// Port of VideoCallActivity.updateBookingStatusToFinished: marks the
+  /// booking finished, records used free trials, or pays the tutor.
+  Future<void> _updateBookingStatusToFinished() async {
+    if (widget.booking.id == 'test_room') return;
+    final snapshot = await _bookingRef.get();
+    if (!snapshot.exists || snapshot.value is! Map) return;
+    final data = snapshot.value as Map;
+
+    final studentId = data['studentId'] as String?;
+    final tutorId = data['tutorId'] as String?;
+    final subject = data['subject'] as String?;
+    final status = data['status'] as String?;
+    final isFree = data['isFree'] == true;
+    final priceObj = data['price'];
+    final lessonPrice = priceObj is num ? priceObj.toDouble() : 0.0;
+    final wasTrial = status == 'free_trial_pending' || isFree;
+
+    await _bookingRef.child('status').set('finished');
+
+    final db = FirebaseDatabase.instance;
+    if (wasTrial && studentId != null && tutorId != null && subject != null) {
+      await db.ref('FreeLessonsUsed/$studentId/$tutorId/$subject').set(true);
+    } else if (tutorId != null && lessonPrice > 0) {
+      await db.ref('Users/Tutor/$tutorId/earnedMoney').runTransaction((current) {
+        final currentMoney = current is num ? current.toDouble() : 0.0;
+        return Transaction.success(currentMoney + lessonPrice);
+      });
+    }
+  }
+
+  /// Port of VideoCallActivity.addLessonCount. NOTE: like Android, this runs
+  /// on both participants' devices, so one finished lesson can count twice.
+  Future<void> _addLessonCount() async {
+    final tutorId = widget.booking.tutorId;
+    if (tutorId.isEmpty) return;
+    final ref = FirebaseDatabase.instance.ref('Users/Tutor/$tutorId/lessonsCount');
+    final snapshot = await ref.get();
+    final current = (snapshot.exists && snapshot.value is num)
+        ? (snapshot.value as num).toInt()
+        : 0;
+    await ref.set(current + 1);
+  }
+
+  Future<void> _leaveCall({bool openReview = false}) async {
     _classTimer?.cancel();
     _callSub?.cancel();
     _bookingSub?.cancel();
@@ -227,7 +276,14 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     await _engine.leaveChannel();
     await _engine.release();
     
-    if (mounted) {
+    if (!mounted) return;
+    if (openReview) {
+      // Android: ReviewWritingActivity is started with BOOKING_ID/TUTOR_ID.
+      context.pushReplacement('/write-review', extra: {
+        'bookingId': widget.booking.id,
+        'tutorId': widget.booking.tutorId,
+      });
+    } else {
       context.pop();
     }
   }
@@ -240,6 +296,9 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
   @override
   void dispose() {
+    if (NotificationService.instance.activeBookingId == widget.booking.id) {
+      NotificationService.instance.activeBookingId = null;
+    }
     _classTimer?.cancel();
     _callSub?.cancel();
     _bookingSub?.cancel();

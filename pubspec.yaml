@@ -11,6 +11,12 @@ dependencies:
   flutter:
     sdk: flutter
 
+  flutter_localizations:
+    sdk: flutter
+  shared_preferences: ^2.3.2
+  flutter_local_notifications: ^19.0.0
+  timezone: ^0.10.0
+
   # Firebase
   firebase_core: ^4.11.0
   firebase_auth: ^6.5.4
